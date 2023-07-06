@@ -54,14 +54,6 @@ val_files = data_files[train_length:]
 train_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"]),
-        # Resized(keys=["image", "label"], spatial_size=[256,256,10]),
-        # NormalizeIntensity(keys="image"),
-
-        # AddChanneld(keys=["image", "label"]),
-        # Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
-        # Orientationd(keys=["image", "label"], axcodes="RAS"),
-        # ScaleIntensityRanged(keys=["image"], a_min=-200, a_max=200,b_min=0.0, b_max=1.0, clip=True,),
-        # RandAffined(keys=['image', 'label'], prob=0.5, translate_range=10),
         RandRotated(keys=['image', 'label'], prob=0.5, range_x=10.0),
         RandGaussianNoised(keys='image', prob=0.5),
         ToTensord(keys=["image", "label"]),
@@ -71,14 +63,11 @@ train_transforms = Compose(
 test_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"]),
-        # Resized(keys=["image", "label"], spatial_size=[10,256,256]),
-        # NormalizeIntensity(keys=["image"]),
         ScaleIntensityRanged(keys=["image"], a_min=-200, a_max=200,b_min=0.0, b_max=1.0, clip=True,),
         ToTensord(keys=["image", "label"]),
     ]
 )
 train_set = Dataset(data=train_files, transform=train_transforms)
-# train_set = Dataset(data=train_files)
 model = UNet3D(num_classes=4, in_channels=1)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available
 print("device:", device)
@@ -129,7 +118,6 @@ def vadidation(val_dataloader,model, num_classes, set ):
           outputs_soft = torch.softmax(outputs, dim=1)
           loss_dice = dice_loss(outputs_soft, labels.unsqueeze(1))
           loss = loss_dice
-          # val_loss += loss.item() * inputs.size(0)
           val_loss += loss.item()
 
           ##Calculating the dice score
@@ -149,8 +137,6 @@ val_losses = []
 best_val_loss = float('inf')
 
 for epoch in range(num_epochs):
-    # print("epoch number: ",epoch)
-    # Training
     model.train()
     train_loss = 0.0
     train_correct = 0
@@ -160,9 +146,6 @@ for epoch in range(num_epochs):
         inputs = data['image'].to(device)
         labels = data['label'].to(device)
         inputs = inputs.unsqueeze(1)  # Add an extra dimension
-        # inputs = inputs.permute(0, 2, 1, 3, 4)
-
-        # print("inputs.shape:",inputs.shape)
         optimizer.zero_grad()
 
         # Forward pass
@@ -170,10 +153,8 @@ for epoch in range(num_epochs):
         outputs_soft = torch.softmax(outputs, dim=1)
 
         # Compute loss
-        # print(outputs_soft.shape,labels.unsqueeze(1).shape)
         loss_dice = dice_loss(outputs_soft, labels.unsqueeze(1))
         loss = (loss_dice)
-        # train_loss += loss.item() * inputs.size(0)
         train_loss += loss.item()
 
         # Backward pass and optimization
@@ -190,7 +171,6 @@ for epoch in range(num_epochs):
             f'Epoch {epoch + 1}/{num_epochs} \t Iteration {iter_num}/{total_iterations} \t Training Loss: {train_loss / (i + 1):.4f}'
         )
         sys.stdout.flush()
-        # vadidation(val_dataloader,model,num_classes = 4 )
 
     print(f'Epoch {epoch+1} \t\t Training Loss: {train_loss / len(train_dataloader)} ')
     train_losses.append(train_loss/len(train_dataloader))
@@ -199,11 +179,9 @@ for epoch in range(num_epochs):
     val_losses.append(avg_val_loss)
     plot_loss(train_losses, val_losses)
     # Validation
-    # vadidation(train_dataloader,model, num_classes = 4, set= 'train')
     if avg_val_loss < best_val_loss:
         best_val_loss = avg_val_loss
         best_epoch = epoch
-        # torch.save(model.state_dict(), '/content/drive/MyDrive/data/augmentation_model.pth')
             
     if epoch - best_epoch >= patience:
         print(f'Early stopping! No improvement in validation loss for {patience} epochs.')
