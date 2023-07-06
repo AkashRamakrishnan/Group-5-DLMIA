@@ -32,15 +32,12 @@ class DiceLoss(nn.Module):
     def forward(self, inputs, target, weight=None, softmax=False):
         if softmax:
             inputs = torch.softmax(inputs, dim=1)
-        # print("shape target:", target.shape)
         target = self._one_hot_encoder(target)
-        # print("shape target after one hot:", target.shape)
         if weight is None:
             weight = [1] * self.n_classes
         assert inputs.size() == target.size(), 'predict & target shape do not match'
         class_wise_dice = []
         loss = 0.0
-        # print(target[:, 0])
         for i in range(1, self.n_classes):
             dice = self._dice_loss(inputs[:, i], target[:, i])
             class_wise_dice.append(1.0 - dice.item())
@@ -77,9 +74,7 @@ def compute_kl_loss(p, q):
 def dc(result, reference):
 
     result = numpy.atleast_1d(result.astype(numpy.bool))
-    # print("result:",result[:10])
     reference = numpy.atleast_1d(reference.astype(numpy.bool))
-    # print("reference:", reference.shape, "result:", result.shape)
     intersection = numpy.count_nonzero(result & reference)
 
     size_i1 = numpy.count_nonzero(result)
